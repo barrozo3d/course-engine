@@ -33,7 +33,7 @@ MUST NOT BE UNIFIED. They produce genuinely different output:
 import difflib
 
 
-def _near_misses(text, profile):
+def _near_misses(text, profile, week=None):
     """Fuzzy-match words and word-windows against the profile's risk vocabulary.
 
     ⚠️ Single words only match single-word vocab: a 2-word window trivially
@@ -50,6 +50,24 @@ def _near_misses(text, profile):
     for n in {len(v.split()) for v in multi_vocab}:
         candidates += [(" ".join(words[i:i + n]), multi_vocab) for i in range(len(words) - n + 1)]
 
+    # §3.5 tuning debt, answered by open question 4 (2026-09-03): a PER-WEEK
+    # pair suppression, not course-phase scoping and not term deletion.
+    #
+    # ⚠️ The measured harm was four false positives in ONE week -- Week 8, a
+    # rendering/lookdev week, where "range" ~ "wrangle" fired four times and in
+    # wk8-05 the flagged phrase was the literal menu entry `Sample Frame Range`;
+    # plus "angle" ~ "wrangle" on a spot light's Cone Angle, and "up constraints"
+    # ~ "glue constraint". In a rendering week, *range* is usually just range.
+    #
+    # ⚠️ SUPPRESSION IS BY PAIR, NOT BY TERM. Dropping "wrangle" from the vocab
+    # for Week 8 would also lose a real wrangle mishear in that week; §3.5 is
+    # explicit that the fix must not delete terms that earned their place in the
+    # FX weeks. Suppressing the specific pair keeps the term live.
+    suppressed = set()
+    if week is not None:
+        for a, b in profile.get("near_miss_suppress", {}).get(week, ()):
+            suppressed.add((a.lower(), b.lower()))
+
     found = set()
     for cand, pool in candidates:
         if cand in pool:
@@ -63,15 +81,18 @@ def _near_misses(text, profile):
         shorter, longer = sorted([cand, match], key=len)
         if longer.startswith(shorter) and len(longer) - len(shorter) <= profile["near_miss_suffix_tolerance"]:
             continue
+        if (cand.lower(), match.lower()) in suppressed:
+            continue
         found.add(f"'{cand}' ~ '{match}'")
     return found
 
 
-def flag_segments(segments, profile, duration_sec=None):
+def flag_segments(segments, profile, duration_sec=None, week=None):
     """Return [{start, end, text, reasons}, ...] for segments worth a second look.
 
     `duration_sec` is optional so older callers keep working; without it the
-    duration-overrun flag is silently unavailable."""
+    duration-overrun flag is silently unavailable. `week` is likewise optional
+    and only enables the profile's per-week near-miss suppression (§3.5)."""
     flagged = []
     dup_at = {}
 
@@ -91,7 +112,7 @@ def flag_segments(segments, profile, duration_sec=None):
         text = seg.get("text", "")
 
         # 2. Accent-driven near-miss against the profile's vocabulary.
-        nm = _near_misses(text, profile)
+        nm = _near_misses(text, profile, week)
         if nm:
             reasons.append("possible mishear: " + ", ".join(sorted(nm)))
 
