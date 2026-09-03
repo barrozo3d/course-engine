@@ -11,7 +11,7 @@ re-runs) exists. Any NEW state key must carry a protocol version stamp or the
 same ambiguity returns with the next pipeline improvement.
 """
 
-import json, os
+import copy, json, os
 from datetime import datetime, timezone
 
 
@@ -24,7 +24,14 @@ def load_state(path, course_root, defaults):
     identity, so it is injected rather than branched on."""
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
-    state = dict(defaults)
+    # ⚠️ DEEP copy, not dict(). The pre-engine code built a fresh dict LITERAL on
+    # every call, so its nested "lessons": {} was new each time. A shallow copy
+    # shares that nested dict with the caller's module-level COURSE dict: the
+    # first fresh course's lessons then leak into the next one AND mutate the
+    # defaults in place. Caught 2026-09-03 by testing two fresh load_state calls
+    # in one process -- main() only calls it once, so nothing in production had
+    # tripped it yet, and it would have surfaced as impossible state instead.
+    state = copy.deepcopy(defaults)
     state["source_root"] = course_root
     state.setdefault("lessons", {})
     state.setdefault("last_updated", None)

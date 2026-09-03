@@ -17,7 +17,7 @@ why a threshold exists are what a clone loses first, and the most expensive part
 to reconstruct.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .srt import format_srt_timestamp, write_srt
 from .media import probe_duration
