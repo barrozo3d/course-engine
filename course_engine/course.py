@@ -43,6 +43,7 @@ from pathlib import Path
 
 from .media import probe_duration
 from .flags import unresolved_flags
+from .modules import finalize_keys as _derived_finalize_keys, module_status
 
 # Bumped when a pipeline change alters what a finalized lesson MEANS -- not
 # when code moves. 1 = the protocol in force when stamping was introduced,
@@ -154,8 +155,17 @@ def finalize(state, slug, course, save):
         print(f"[BLOCKED] {slug} has {len(unresolved)} unresolved flag(s). "
               f"Run --check-flags {slug} to see them, then --resolve-flag or --bulk-resolve each before finalizing.")
         sys.exit(1)
-    for key in course.get("finalize_keys", ()):
+    # ⚠️ DERIVED from the course's enabled output modules, not hand-listed
+    # (§1.4). Both courses previously carried this by hand and both matched what
+    # modules.finalize_keys() computes; deriving removes the chance of the two
+    # drifting apart without anything noticing.
+    for key in _derived_finalize_keys(course):
         entry[key] = True
     entry["flagged_segments_reviewed"] = True
     save(state)
     print(f"[FINALIZED] {slug}: {len(entry.get('flagged_segments', []))} flag(s), all resolved.")
+    # Report what each enabled module still owes, so "finalized" cannot quietly
+    # mean "the review gate passed and nothing else ran".
+    for name, done, missing in module_status(entry, course):
+        if not done:
+            print(f"           module '{name}' incomplete: missing {', '.join(missing)}")
