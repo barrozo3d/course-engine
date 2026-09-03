@@ -17,11 +17,12 @@ why a threshold exists are what a clone loses first, and the most expensive part
 to reconstruct.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 from .srt import format_srt_timestamp, write_srt
 from .media import probe_duration
 from .flags import flag_key, unresolved_flags
+from .detect import flag_segments
 from .engine import CourseEngine
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "format_srt_timestamp", "write_srt",
     "probe_duration",
     "flag_key", "unresolved_flags",
+    "flag_segments",
     "CourseEngine",
 ]
