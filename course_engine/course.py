@@ -23,6 +23,19 @@ branch inside one function.
 houdini sets the knowledge-base keys, nuke does not, because nuke runs no
 knowledge-base module. That is composition, not disagreement, so it is data:
 `course["finalize_keys"]`.
+
+⚠️ PROTOCOL VERSION (§1.4, Phase 4). `srt_written: True` does not mean "done
+under the CURRENT protocol" -- that was the Rebelway wk3-15 lesson and the reason
+decision #1 exists. Every lesson seeded from now on carries
+`protocol_version: PROTOCOL_VERSION`, so the boundary between protocols stays
+knowable instead of being reconstructed from commit dates later.
+
+🔴 EXISTING LESSONS ARE NOT BACKFILLED, and that is the point, not an oversight.
+An absent `protocol_version` means "seeded before stamping existed" -- which is
+true, knowable, and exactly the fact a backfill would destroy. Writing the
+current version onto 115 English and 109 Russian lessons finalized under an older
+protocol would assert something false about all of them, and it is precisely the
+ambiguity the stamp exists to end. Treat absent as its own value.
 """
 
 import sys
@@ -30,6 +43,12 @@ from pathlib import Path
 
 from .media import probe_duration
 from .flags import unresolved_flags
+
+# Bumped when a pipeline change alters what a finalized lesson MEANS -- not
+# when code moves. 1 = the protocol in force when stamping was introduced,
+# 2026-09-03: caption cross-check, per-video prompt priming, the four
+# structural detectors from Phase 0.
+PROTOCOL_VERSION = 1
 
 
 def lesson_slug(course, slugify, **fields):
@@ -114,6 +133,8 @@ def ensure_lessons(state, course_root, course, slugify):
         seeded["source_file"] = rel_path
         seeded["duration_sec"] = probe_duration(v["path"])
         seeded.update(entry)
+        # Appended last so every pre-existing key keeps its position.
+        seeded["protocol_version"] = PROTOCOL_VERSION
         state["lessons"][slug] = seeded
     return state, videos
 

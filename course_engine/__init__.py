@@ -17,13 +17,13 @@ why a threshold exists are what a clone loses first, and the most expensive part
 to reconstruct.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .srt import format_srt_timestamp, write_srt
 from .media import probe_duration
 from .flags import flag_key, unresolved_flags
 from .detect import flag_segments
-from .course import lesson_slug, scan_course, ensure_lessons, finalize
+from .course import lesson_slug, scan_course, ensure_lessons, finalize, PROTOCOL_VERSION
 from .engine import CourseEngine
 
 __all__ = [
@@ -32,6 +32,6 @@ __all__ = [
     "probe_duration",
     "flag_key", "unresolved_flags",
     "flag_segments",
-    "lesson_slug", "scan_course", "ensure_lessons", "finalize",
+    "lesson_slug", "scan_course", "ensure_lessons", "finalize", "PROTOCOL_VERSION",
     "CourseEngine",
 ]
